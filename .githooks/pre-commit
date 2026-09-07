@@ -1,0 +1,33 @@
+#!/bin/bash
+
+python - <<'PY'
+from pathlib import Path
+import nbformat
+import sys
+
+files = [
+    Path(f)
+    for f in __import__("subprocess").check_output(
+        ["git", "diff", "--cached", "--name-only", "--diff-filter=ACM"],
+        text=True
+    ).splitlines()
+    if f.endswith(".ipynb")
+]
+
+for path in files:
+    if not path.exists():
+        continue
+
+    if path.stat().st_size == 0:
+        print(f"ERROR: Empty notebook: {path}")
+        sys.exit(1)
+
+    try:
+        nb = nbformat.read(path, as_version=4)
+        nbformat.validate(nb)
+        print(f"VALID: {path}")
+    except Exception as e:
+        print(f"ERROR: Invalid notebook: {path}")
+        print(e)
+        sys.exit(1)
+PY
